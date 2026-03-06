@@ -1,0 +1,10 @@
+# Ignore the secrets folder
+.streamlit/
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+
+# Ignore local environment files
+.env
+venv/
