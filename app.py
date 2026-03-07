@@ -35,46 +35,65 @@ if conn:
 
     # --- 5. ADMIN PORTAL ---
     st.sidebar.header("🔒 Admin Portal")
-    password = st.sidebar.text_input("Enter Admin Password:", type="password")
+        password = st.sidebar.text_input("Enter Admin Password:", type="password")
 
-    # This is the part we are adding/changing slightly
-    if password:
-    if password == st.secrets["admin_password"]:
-        st.sidebar.success("Logged in as Admin")
-        st.sidebar.divider()
-        
-        # MOVE THIS INSIDE THE ADMIN BLOCK
-        task = st.sidebar.radio("Choose Action:", ["📝 Update Stock", "➕ Add New Item"])
-
-        if task == "📝 Update Stock":
-            # ... all your existing update code goes here ...
-        else:
-            # ... all your existing add item code goes here ...
+        if password == st.secrets["admin_password"]:
+            st.sidebar.success("Logged in as Admin")
+            st.sidebar.divider()
             
-    else:
-        # VISITOR BLOCK - No menus or buttons here
-        st.sidebar.error("Your Password is Wrong")
-        st.sidebar.info("Logged in as Visitor")
-        
-        task = st.sidebar.radio("Choose Action:", ["📝 Update Stock", "➕ Add New Item"])
+            # Action Selector
+            task = st.sidebar.radio("Choose Action:", ["📝 Update Stock", "➕ Add New Item"])
 
-        if task == "📝 Update Stock":
-            if not df_raw.empty:
+            if task == "📝 Update Stock":
                 st.sidebar.subheader("Update Inventory")
-                brands = sorted(df_raw['brand'].unique())
+                
+                # Filter logic
+                brands = sorted(df['Brand'].unique())
                 sel_brand = st.sidebar.selectbox("Choose Brand", brands)
-                names = df_raw[df_raw['brand'] == sel_brand]['item_name'].tolist()
+                
+                names = df[df['Brand'] == sel_brand]['Nama Barang'].tolist()
                 sel_name = st.sidebar.selectbox("Choose Item Name", names)
-                current_qty = df_raw[(df_raw['brand'] == sel_brand) & (df_raw['item_name'] == sel_name)]['current_stock'].values[0]
+                
+                # Auto-fill stock logic
+                current_qty = df[(df['Brand'] == sel_brand) & (df['Nama Barang'] == sel_name)]['Sisa Barang'].values[0]
                 st.sidebar.info(f"Last Stock: **{current_qty}**")
+                
                 new_qty = st.sidebar.number_input("Input New Stock", min_value=0, value=int(current_qty))
                 
                 if st.sidebar.button("Update Now"):
+                    conn = get_connection()
                     cur = conn.cursor()
-                    cur.execute("UPDATE inventory SET current_stock = %s, last_updated = CURRENT_TIMESTAMP WHERE item_name = %s AND brand = %s", (new_qty, sel_name, sel_brand))
+                    cur.execute("""
+                        UPDATE inventory 
+                        SET current_stock = %s, last_updated = CURRENT_TIMESTAMP 
+                        WHERE item_name = %s AND brand = %s
+                    """, (new_qty, sel_name, sel_brand))
                     conn.commit()
                     st.sidebar.success(f"✅ Updated {sel_name}!")
                     st.rerun()
+
+            else:
+                st.sidebar.subheader("Add New Item")
+                add_n = st.sidebar.text_input("Item Name")
+                add_b = st.sidebar.text_input("Brand")
+                add_s = st.sidebar.number_input("Initial Stock", min_value=0)
+                add_u = st.sidebar.selectbox("Unit", ["Box", "Pcs", "Tube", "Pack", "Botol", "Buah"])
+                
+                if st.sidebar.button("Save New Item"):
+                    # Duplicate notification check
+                    exists = df[(df['Nama Barang'].str.lower() == add_n.lower()) & (df['Brand'].str.lower() == add_b.lower())]
+                    if not exists.empty:
+                        st.sidebar.error("❌ Item exists! Just update the stock instead.")
+                    elif add_n == "":
+                        st.sidebar.warning("Please enter a name.")
+                    else:
+                        conn = get_connection()
+                        cur = conn.cursor()
+                        cur.execute("INSERT INTO inventory (item_name, brand, current_stock, unit_type) VALUES (%s, %s, %s, %s)", 
+                                   (add_n, add_b, add_s, add_u))
+                        conn.commit()
+                        st.sidebar.success("✨ Added!")
+                        st.rerun()
             else:
                 st.sidebar.warning("No items to update yet. Add a new item first!")
 
@@ -114,5 +133,6 @@ if conn:
             st.dataframe(df_display, use_container_width=True, hide_index=True)
     else:
         st.info("The warehouse is currently empty. Use the Admin Portal on the left to add items.")
+
 
 
