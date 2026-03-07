@@ -42,6 +42,7 @@ if conn:
             st.sidebar.success("Logged in as Admin")
             st.sidebar.divider()
             
+            # This is the line that was duplicated - keep only ONE
             task = st.sidebar.radio("Choose Action:", ["📝 Update Stock", "➕ Add New Item"])
 
             if task == "📝 Update Stock":
@@ -58,7 +59,7 @@ if conn:
                     
                     if st.sidebar.button("Update Now"):
                         cur = conn.cursor()
-                        # WITA Timezone Fix included below
+                        # Updated to WITA (GMT+8)
                         cur.execute("""
                             UPDATE inventory 
                             SET current_stock = %s, 
@@ -81,7 +82,7 @@ if conn:
                 if st.sidebar.button("Save New Item"):
                     if add_n:
                         cur = conn.cursor()
-                        # WITA Timezone Fix included below
+                        # Updated to WITA (GMT+8)
                         cur.execute("""
                             INSERT INTO inventory (item_name, brand, current_stock, unit_type, last_updated) 
                             VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Makassar')
@@ -90,7 +91,6 @@ if conn:
                         st.sidebar.success("✨ Added!")
                         st.rerun()
         else:
-            # Your requested Visitor notification
             st.sidebar.error("Your Password is Wrong")
             st.sidebar.info("Logged in as Visitor")
         
@@ -152,6 +152,7 @@ if conn:
             st.dataframe(df_display, use_container_width=True, hide_index=True)
     else:
         st.info("The warehouse is currently empty. Use the Admin Portal on the left to add items.")
+
 
 
 
