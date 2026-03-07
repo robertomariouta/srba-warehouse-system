@@ -62,7 +62,7 @@ if conn:
                 
                 if st.sidebar.button("Update Now"):
                     cur = conn.cursor()
-                    cur.execute("UPDATE inventory SET current_stock = %s, last_updated = CURRENT_TIMESTAMP WHERE item_name = %s AND brand = %s", (new_qty, sel_name, sel_brand))
+                    cur.execute("""UPDATE inventory SET current_stock = %s, last_updated = CURRENT_TIMESTAMP AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Makassar' WHERE item_name = %s AND brand = %s""", (new_qty, sel_name, sel_brand))
                     conn.commit()
                     st.sidebar.success(f"✅ Updated {sel_name}!")
                     st.rerun()
@@ -81,7 +81,7 @@ if conn:
                     st.sidebar.warning("Please enter a name.")
                 else:
                     cur = conn.cursor()
-                    cur.execute("INSERT INTO inventory (item_name, brand, current_stock, unit_type) VALUES (%s, %s, %s, %s)", (add_n, add_b, add_s, add_u))
+                    cur.execute("""INSERT INTO inventory (item_name, brand, current_stock, unit_type, last_updated) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Makassar')""", (add_n, add_b, add_s, add_u))
                     conn.commit()
                     st.sidebar.success("✨ Added!")
                     st.rerun()
@@ -105,4 +105,5 @@ if conn:
             st.dataframe(df_display, use_container_width=True, hide_index=True)
     else:
         st.info("The warehouse is currently empty. Use the Admin Portal on the left to add items.")
+
 
