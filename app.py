@@ -37,40 +37,40 @@ if conn:
     st.sidebar.header("🔒 Admin Portal")
     password = st.sidebar.text_input("Enter Admin Password:", type="password")
 
-        if password == st.secrets["admin_password"]:
-            st.sidebar.success("Logged in as Admin")
-            st.sidebar.divider()
+    if password == st.secrets["admin_password"]:
+        st.sidebar.success("Logged in as Admin")
+        st.sidebar.divider()
             
             # Action Selector
-            task = st.sidebar.radio("Choose Action:", ["📝 Update Stock", "➕ Add New Item"])
+        task = st.sidebar.radio("Choose Action:", ["📝 Update Stock", "➕ Add New Item"])
 
-            if task == "📝 Update Stock":
-                st.sidebar.subheader("Update Inventory")
+        if task == "📝 Update Stock":
+            st.sidebar.subheader("Update Inventory")
                 
-                # Filter logic
-                brands = sorted(df['Brand'].unique())
-                sel_brand = st.sidebar.selectbox("Choose Brand", brands)
+            # Filter logic
+            brands = sorted(df['Brand'].unique())
+            sel_brand = st.sidebar.selectbox("Choose Brand", brands)
                 
-                names = df[df['Brand'] == sel_brand]['Nama Barang'].tolist()
-                sel_name = st.sidebar.selectbox("Choose Item Name", names)
+            names = df[df['Brand'] == sel_brand]['Nama Barang'].tolist()
+            sel_name = st.sidebar.selectbox("Choose Item Name", names)
                 
-                # Auto-fill stock logic
-                current_qty = df[(df['Brand'] == sel_brand) & (df['Nama Barang'] == sel_name)]['Sisa Barang'].values[0]
-                st.sidebar.info(f"Last Stock: **{current_qty}**")
+            # Auto-fill stock logic
+            current_qty = df[(df['Brand'] == sel_brand) & (df['Nama Barang'] == sel_name)]['Sisa Barang'].values[0]
+            st.sidebar.info(f"Last Stock: **{current_qty}**")
                 
-                new_qty = st.sidebar.number_input("Input New Stock", min_value=0, value=int(current_qty))
+            new_qty = st.sidebar.number_input("Input New Stock", min_value=0, value=int(current_qty))
                 
-                if st.sidebar.button("Update Now"):
-                    conn = get_connection()
-                    cur = conn.cursor()
-                    cur.execute("""
-                        UPDATE inventory 
-                        SET current_stock = %s, last_updated = CURRENT_TIMESTAMP 
-                        WHERE item_name = %s AND brand = %s
-                    """, (new_qty, sel_name, sel_brand))
-                    conn.commit()
-                    st.sidebar.success(f"✅ Updated {sel_name}!")
-                    st.rerun()
+            if st.sidebar.button("Update Now"):
+                conn = get_connection()
+                cur = conn.cursor()
+                cur.execute("""
+                    UPDATE inventory 
+                    SET current_stock = %s, last_updated = CURRENT_TIMESTAMP 
+                    WHERE item_name = %s AND brand = %s
+                """, (new_qty, sel_name, sel_brand))
+                conn.commit()
+                st.sidebar.success(f"✅ Updated {sel_name}!")
+                st.rerun()
 
             else:
                 st.sidebar.subheader("Add New Item")
@@ -133,6 +133,7 @@ if conn:
             st.dataframe(df_display, use_container_width=True, hide_index=True)
     else:
         st.info("The warehouse is currently empty. Use the Admin Portal on the left to add items.")
+
 
 
 
