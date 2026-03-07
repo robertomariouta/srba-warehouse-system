@@ -38,14 +38,23 @@ if conn:
     password = st.sidebar.text_input("Enter Admin Password:", type="password")
 
     # This is the part we are adding/changing slightly
-    if password: # Only check if the user has typed something
-        if password == st.secrets["admin_password"]:
-            st.sidebar.success("Logged in as Admin")
-            st.sidebar.divider()
-            # ... (keep all your existing Task/Add Item code here)
+    if password:
+    if password == st.secrets["admin_password"]:
+        st.sidebar.success("Logged in as Admin")
+        st.sidebar.divider()
+        
+        # MOVE THIS INSIDE THE ADMIN BLOCK
+        task = st.sidebar.radio("Choose Action:", ["📝 Update Stock", "➕ Add New Item"])
+
+        if task == "📝 Update Stock":
+            # ... all your existing update code goes here ...
         else:
-            st.sidebar.error("Your Password is Wrong")
-            st.sidebar.info("Logged in as Visitor")
+            # ... all your existing add item code goes here ...
+            
+    else:
+        # VISITOR BLOCK - No menus or buttons here
+        st.sidebar.error("Your Password is Wrong")
+        st.sidebar.info("Logged in as Visitor")
         
         task = st.sidebar.radio("Choose Action:", ["📝 Update Stock", "➕ Add New Item"])
 
@@ -105,4 +114,5 @@ if conn:
             st.dataframe(df_display, use_container_width=True, hide_index=True)
     else:
         st.info("The warehouse is currently empty. Use the Admin Portal on the left to add items.")
+
 
