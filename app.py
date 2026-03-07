@@ -2,12 +2,10 @@ import streamlit as st
 import psycopg2
 import pandas as pd
 
-# --- 1. SETTINGS & LOGO ---
 st.set_page_config(page_title="SRBA Warehouse", layout="wide")
 st.image("logo.png", width=150)
 st.title("Stok Gudang PT Sumber Rejeki Berkat Abadi")
 
-# --- 2. DATABASE CONNECTION ---
 def get_connection():
     return psycopg2.connect(
         host=st.secrets["db_host"],
@@ -20,11 +18,9 @@ def get_connection():
 
 conn = get_connection()
 
-# --- 3. LOAD DATA ---
 query = "SELECT item_name, brand, current_stock, unit_type, last_updated FROM inventory ORDER BY last_updated DESC"
 df_raw = pd.read_sql(query, conn)
 
-# --- 4. SEARCH & DISPLAY ---
 search = st.text_input("🔍 Search Name or Brand:")
 df_display = df_raw.copy()
 
@@ -34,17 +30,14 @@ if search:
         (df_raw['brand'].str.contains(search, case=False))
     ]
 
-# Rename for Indonesian Labels
 df_display.columns = ["Nama Barang", "Brand", "Sisa Barang", "Satuan Barang", "Update Data"]
 
-# Status Logic
 def get_status(stock):
     return "📦 RE-ORDER" if stock <= 0 else "✅ STOCK SAFE"
 
 df_display["Status"] = df_display["Sisa Barang"].apply(get_status)
 st.table(df_display[["Nama Barang", "Brand", "Sisa Barang", "Satuan Barang", "Status", "Update Data"]])
 
-# --- 5. ADMIN PORTAL ---
 st.sidebar.header("🔒 Admin Portal")
 password = st.sidebar.text_input("Enter Admin Password:", type="password")
 
