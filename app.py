@@ -33,13 +33,19 @@ if conn:
     # Pull only the columns created in the new table
     df_raw = pd.read_sql('SELECT item_name, brand, current_stock, unit_type, last_updated FROM inventory ORDER BY last_updated DESC', conn)
 
-    # --- 5. ADMIN PORTAL (MOVED OUTSIDE TO BE ALWAYS VISIBLE) ---
+   # --- 5. ADMIN PORTAL ---
     st.sidebar.header("🔒 Admin Portal")
     password = st.sidebar.text_input("Enter Admin Password:", type="password")
 
-    if password == st.secrets["admin_password"]:
-        st.sidebar.success("Logged in as Admin")
-        st.sidebar.divider()
+    # This is the part we are adding/changing slightly
+    if password: # Only check if the user has typed something
+        if password == st.secrets["admin_password"]:
+            st.sidebar.success("Logged in as Admin")
+            st.sidebar.divider()
+            # ... (keep all your existing Task/Add Item code here)
+        else:
+            st.sidebar.error("Your Password is Wrong")
+            st.sidebar.info("Logged in as Visitor")
         
         task = st.sidebar.radio("Choose Action:", ["📝 Update Stock", "➕ Add New Item"])
 
@@ -99,3 +105,4 @@ if conn:
             st.dataframe(df_display, use_container_width=True, hide_index=True)
     else:
         st.info("The warehouse is currently empty. Use the Admin Portal on the left to add items.")
+
