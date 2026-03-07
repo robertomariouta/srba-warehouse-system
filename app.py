@@ -2,7 +2,7 @@ import streamlit as st
 import psycopg2
 import pandas as pd
 
-# --- 1. DATABASE CONNECTION ---
+# --- 1. DATABASE CONNECTION (MUST BE AT THE TOP) ---
 def get_connection():
     try:
         return psycopg2.connect(
@@ -15,6 +15,8 @@ def get_connection():
     except Exception as e:
         st.error(f"❌ Connection Failed: {e}")
         return None
+
+# NOW you can have the rest of your code below...
 
 # --- 2. PAGE CONFIG ---
 st.set_page_config(page_title="SRBA Inventory", layout="wide", page_icon="logo.png")
@@ -80,12 +82,33 @@ if conn:
 
 # --- 6. ADMIN PORTAL (SIDEBAR) ---
 st.sidebar.header("🔒 Admin Portal")
-password = st.sidebar.text_input("Enter Admin Password:", type="password")
+admin_pass = st.sidebar.text_input("Enter Admin Password:", type="password")
 
-if password == st.secrets["admin_password"]:
+if admin_pass == st.secrets["admin_password"]:
     st.sidebar.success("Logged in as Admin")
-    # (Your existing Add/Update logic remains here, just ensure it uses 'inventory' table)
-elif password != "":
+    
+    # RE-ADD THE TABS OR EXPANDERS FOR ADMIN TASKS
+    task = st.sidebar.selectbox("Choose Task", ["Update Remaining Stock", "Add New Inventory"])
+
+    if task == "Update Remaining Stock":
+        st.subheader("📝 Update Stock Levels")
+        # Use the names from your Neon database ('item_name')
+        item_to_update = st.selectbox("Select Item", df['Nama Barang'].tolist())
+        new_qty = st.number_input("New Quantity", min_value=0)
+        
+        if st.button("Update Now"):
+            # Put your SQL UPDATE code here
+            st.success(f"Updated {item_to_update} to {new_qty}")
+
+    elif task == "Add New Inventory":
+        st.subheader("➕ Add New Item")
+        # Add your form fields here (item_name, brand, etc.)
+        if st.button("Save New Item"):
+            # Put your SQL INSERT code here
+            st.success("Item added!")
+
+elif admin_pass != "":
     st.sidebar.warning("❌ Wrong password.")
+
 else:
     st.sidebar.info("Please enter password to edit.")
