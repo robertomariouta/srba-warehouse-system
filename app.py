@@ -35,7 +35,7 @@ if conn:
 
     # --- 5. ADMIN PORTAL ---
     st.sidebar.header("🔒 Admin Portal")
-        password = st.sidebar.text_input("Enter Admin Password:", type="password")
+    password = st.sidebar.text_input("Enter Admin Password:", type="password")
 
         if password == st.secrets["admin_password"]:
             st.sidebar.success("Logged in as Admin")
@@ -133,6 +133,7 @@ if conn:
             st.dataframe(df_display, use_container_width=True, hide_index=True)
     else:
         st.info("The warehouse is currently empty. Use the Admin Portal on the left to add items.")
+
 
 
 
