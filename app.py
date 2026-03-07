@@ -10,7 +10,8 @@ def get_connection():
             database=st.secrets["db_name"],
             user=st.secrets["db_user"],
             password=st.secrets["db_password"],
-            port=st.secrets["db_port"]
+            port=st.secrets["db_port"],
+            sslmode="require" # Critical for Neon Cloud connection
         )
     except Exception as e:
         st.error(f"❌ Connection Failed: {e}")
@@ -29,9 +30,8 @@ with col_title:
 # --- 4. DATA FETCHING ---
 conn = get_connection()
 if conn:
-    # Sort by update time so your most recent work is always at the top
-    df_raw = pd.read_sql('SELECT * FROM inventory ORDER BY last_updated DESC', conn)
-    conn.close()
+    # Pull only the columns created in the new table
+    df_raw = pd.read_sql('SELECT item_name, brand, current_stock, unit_type, last_updated FROM inventory ORDER BY last_updated DESC', conn)
 
     if not df_raw.empty:
         df = df_raw.rename(columns={
@@ -50,7 +50,7 @@ if conn:
         
         df['Status'] = df.apply(check_status, axis=1)
 
-        # --- 5. ADMIN PORTAL (SIDEBAR VERTICAL LAYOUT) ---
+        # --- 5. ADMIN PORTAL (SIDEBAR) ---
         st.sidebar.header("🔒 Admin Portal")
         password = st.sidebar.text_input("Enter Admin Password:", type="password")
 
@@ -58,20 +58,16 @@ if conn:
             st.sidebar.success("Logged in as Admin")
             st.sidebar.divider()
             
-            # Action Selector
             task = st.sidebar.radio("Choose Action:", ["📝 Update Stock", "➕ Add New Item"])
 
             if task == "📝 Update Stock":
                 st.sidebar.subheader("Update Inventory")
-                
-                # Filter logic
                 brands = sorted(df['Brand'].unique())
                 sel_brand = st.sidebar.selectbox("Choose Brand", brands)
                 
                 names = df[df['Brand'] == sel_brand]['Nama Barang'].tolist()
                 sel_name = st.sidebar.selectbox("Choose Item Name", names)
                 
-                # Auto-fill stock logic
                 current_qty = df[(df['Brand'] == sel_brand) & (df['Nama Barang'] == sel_name)]['Sisa Barang'].values[0]
                 st.sidebar.info(f"Last Stock: **{current_qty}**")
                 
@@ -97,7 +93,6 @@ if conn:
                 add_u = st.sidebar.selectbox("Unit", ["Box", "Pcs", "Tube", "Pack", "Botol", "Buah"])
                 
                 if st.sidebar.button("Save New Item"):
-                    # Duplicate notification check
                     exists = df[(df['Nama Barang'].str.lower() == add_n.lower()) & (df['Brand'].str.lower() == add_b.lower())]
                     if not exists.empty:
                         st.sidebar.error("❌ Item exists! Just update the stock instead.")
