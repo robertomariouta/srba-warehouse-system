@@ -51,12 +51,13 @@ if conn:
         df['Status'] = df.apply(check_status, axis=1)
 
         # --- 5. ADMIN PORTAL (SIDEBAR) ---
+        # Move the sidebar OUTSIDE of the "if not df_raw.empty" block
         st.sidebar.header("🔒 Admin Portal")
         password = st.sidebar.text_input("Enter Admin Password:", type="password")
 
         if password == st.secrets["admin_password"]:
-            st.sidebar.success("Logged in as Admin")
-            st.sidebar.divider()
+        st.sidebar.success("Logged in as Admin")
+        # ... (keep the rest of the admin code here)
             
             task = st.sidebar.radio("Choose Action:", ["📝 Update Stock", "➕ Add New Item"])
 
@@ -117,3 +118,4 @@ if conn:
             st.dataframe(df_display[mask], use_container_width=True, hide_index=True)
         else:
             st.dataframe(df_display, use_container_width=True, hide_index=True)
+
