@@ -2,7 +2,7 @@ import streamlit as st
 import psycopg2
 import pandas as pd
 
-# --- 1. DATABASE CONNECTION (MUST BE AT THE TOP) ---
+# --- 1. DATABASE CONNECTION ---
 def get_connection():
     try:
         return psycopg2.connect(
@@ -16,28 +16,25 @@ def get_connection():
         st.error(f"❌ Connection Failed: {e}")
         return None
 
-# NOW you can have the rest of your code below...
-
 # --- 2. PAGE CONFIG ---
 st.set_page_config(page_title="SRBA Inventory", layout="wide", page_icon="logo.png")
 
 # --- 3. HEADER ---
-col1, col2 = st.columns([0.15, 0.85], vertical_alignment="center") 
-with col1:
+col_logo, col_title = st.columns([0.15, 0.85], vertical_alignment="center") 
+with col_logo:
     st.image("logo.png", width=100) 
-with col2:
+with col_title:
     st.title("Stok Gudang PT Sumber Rejeki Berkat Abadi")
 
-# --- 4. FETCH & PROCESS DATA (The "Option B" Fix) ---
+# --- 4. DATA FETCHING ---
 conn = get_connection()
 if conn:
-    # Pull raw data from the 'inventory' table
-    df = pd.read_sql('SELECT * FROM inventory', conn)
+    # Sort by update time so your most recent work is always at the top
+    df_raw = pd.read_sql('SELECT * FROM inventory ORDER BY last_updated DESC', conn)
     conn.close()
 
-    if not df.empty:
-        # STEP A: Rename columns to stop the KeyError
-        df = df.rename(columns={
+    if not df_raw.empty:
+        df = df_raw.rename(columns={
             'item_name': 'Nama Barang',
             'brand': 'Brand',
             'current_stock': 'Sisa Barang',
@@ -45,70 +42,83 @@ if conn:
             'last_updated': 'Update Data'
         })
 
-        # STEP B: The Status Formula (Fixes ValueError at Line 56)
         def check_status(row):
             try:
-                current = float(row['Sisa Barang'])
-                # Uses hidden 'min_required' from Neon Backend
-                minimum = float(row.get('min_required', 10)) 
-                return "📦 RE-ORDER" if current <= minimum else "✅ STOCK SAFE"
-            except:
-                return "⚠️ DATA ERROR"
-
-        # Apply row-by-row (axis=1 is the key!)
+                cur = float(row['Sisa Barang'])
+                return "📦 RE-ORDER" if cur <= 10 else "✅ STOCK SAFE"
+            except: return "⚠️ ERR"
+        
         df['Status'] = df.apply(check_status, axis=1)
 
-        # STEP C: Frontend Filter (Hides min_required/location_code)
-        display_cols = ['Nama Barang', 'Brand', 'Sisa Barang', 'Satuan Barang', 'Status', 'Update Data']
-        df_display = df[display_cols]
-        
-        # Sort by Date
-        df_display['Update Data'] = pd.to_datetime(df_display['Update Data'])
-        df_display = df_display.sort_values(by='Update Data', ascending=False)
+        # --- 5. ADMIN PORTAL (SIDEBAR VERTICAL LAYOUT) ---
+        st.sidebar.header("🔒 Admin Portal")
+        password = st.sidebar.text_input("Enter Admin Password:", type="password")
 
-        # --- 5. SEARCH & DASHBOARD ---
+        if password == st.secrets["admin_password"]:
+            st.sidebar.success("Logged in as Admin")
+            st.sidebar.divider()
+            
+            # Action Selector
+            task = st.sidebar.radio("Choose Action:", ["📝 Update Stock", "➕ Add New Item"])
+
+            if task == "📝 Update Stock":
+                st.sidebar.subheader("Update Inventory")
+                
+                # Filter logic
+                brands = sorted(df['Brand'].unique())
+                sel_brand = st.sidebar.selectbox("Choose Brand", brands)
+                
+                names = df[df['Brand'] == sel_brand]['Nama Barang'].tolist()
+                sel_name = st.sidebar.selectbox("Choose Item Name", names)
+                
+                # Auto-fill stock logic
+                current_qty = df[(df['Brand'] == sel_brand) & (df['Nama Barang'] == sel_name)]['Sisa Barang'].values[0]
+                st.sidebar.info(f"Last Stock: **{current_qty}**")
+                
+                new_qty = st.sidebar.number_input("Input New Stock", min_value=0, value=int(current_qty))
+                
+                if st.sidebar.button("Update Now"):
+                    conn = get_connection()
+                    cur = conn.cursor()
+                    cur.execute("""
+                        UPDATE inventory 
+                        SET current_stock = %s, last_updated = CURRENT_TIMESTAMP 
+                        WHERE item_name = %s AND brand = %s
+                    """, (new_qty, sel_name, sel_brand))
+                    conn.commit()
+                    st.sidebar.success(f"✅ Updated {sel_name}!")
+                    st.rerun()
+
+            else:
+                st.sidebar.subheader("Add New Item")
+                add_n = st.sidebar.text_input("Item Name")
+                add_b = st.sidebar.text_input("Brand")
+                add_s = st.sidebar.number_input("Initial Stock", min_value=0)
+                add_u = st.sidebar.selectbox("Unit", ["Box", "Pcs", "Tube", "Pack", "Botol", "Buah"])
+                
+                if st.sidebar.button("Save New Item"):
+                    # Duplicate notification check
+                    exists = df[(df['Nama Barang'].str.lower() == add_n.lower()) & (df['Brand'].str.lower() == add_b.lower())]
+                    if not exists.empty:
+                        st.sidebar.error("❌ Item exists! Just update the stock instead.")
+                    elif add_n == "":
+                        st.sidebar.warning("Please enter a name.")
+                    else:
+                        conn = get_connection()
+                        cur = conn.cursor()
+                        cur.execute("INSERT INTO inventory (item_name, brand, current_stock, unit_type) VALUES (%s, %s, %s, %s)", 
+                                   (add_n, add_b, add_s, add_u))
+                        conn.commit()
+                        st.sidebar.success("✨ Added!")
+                        st.rerun()
+
+        # --- 6. MAIN DISPLAY (SEARCH & TABLE) ---
         search = st.text_input("🔍 Search Name or Brand:", placeholder="Type and press ENTER...")
+        df_display = df[['Nama Barang', 'Brand', 'Sisa Barang', 'Satuan Barang', 'Status', 'Update Data']]
         
         if search:
             mask = df_display['Nama Barang'].str.contains(search, case=False, na=False) | \
                    df_display['Brand'].str.contains(search, case=False, na=False)
-            df_final = df_display[mask]
+            st.dataframe(df_display[mask], use_container_width=True, hide_index=True)
         else:
-            df_final = df_display
-
-        st.dataframe(df_final, use_container_width=True, hide_index=True)
-    else:
-        st.info("Table is currently empty. Add data via Admin Portal or Neon.")
-
-# --- 6. ADMIN PORTAL (SIDEBAR) ---
-st.sidebar.header("🔒 Admin Portal")
-admin_pass = st.sidebar.text_input("Enter Admin Password:", type="password")
-
-if admin_pass == st.secrets["admin_password"]:
-    st.sidebar.success("Logged in as Admin")
-    
-    # RE-ADD THE TABS OR EXPANDERS FOR ADMIN TASKS
-    task = st.sidebar.selectbox("Choose Task", ["Update Remaining Stock", "Add New Inventory"])
-
-    if task == "Update Remaining Stock":
-        st.subheader("📝 Update Stock Levels")
-        # Use the names from your Neon database ('item_name')
-        item_to_update = st.selectbox("Select Item", df['Nama Barang'].tolist())
-        new_qty = st.number_input("New Quantity", min_value=0)
-        
-        if st.button("Update Now"):
-            # Put your SQL UPDATE code here
-            st.success(f"Updated {item_to_update} to {new_qty}")
-
-    elif task == "Add New Inventory":
-        st.subheader("➕ Add New Item")
-        # Add your form fields here (item_name, brand, etc.)
-        if st.button("Save New Item"):
-            # Put your SQL INSERT code here
-            st.success("Item added!")
-
-elif admin_pass != "":
-    st.sidebar.warning("❌ Wrong password.")
-
-else:
-    st.sidebar.info("Please enter password to edit.")
+            st.dataframe(df_display, use_container_width=True, hide_index=True)
