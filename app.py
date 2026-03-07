@@ -43,10 +43,6 @@ if conn:
             st.sidebar.success("Logged in as Admin")
             st.sidebar.divider()
             # ... (keep all your existing Task/Add Item code here)
-        else:
-            st.sidebar.error("Your Password is Wrong")
-            st.sidebar.info("Logged in as Visitor")
-        
         task = st.sidebar.radio("Choose Action:", ["📝 Update Stock", "➕ Add New Item"])
 
         if task == "📝 Update Stock":
@@ -68,7 +64,11 @@ if conn:
                     st.rerun()
             else:
                 st.sidebar.warning("No items to update yet. Add a new item first!")
-
+                
+        else:
+            st.sidebar.error("Your Password is Wrong")
+            st.sidebar.info("Logged in as Visitor")
+        
         else:
             st.sidebar.subheader("Add New Item")
             add_n = st.sidebar.text_input("Item Name")
@@ -105,4 +105,5 @@ if conn:
             st.dataframe(df_display, use_container_width=True, hide_index=True)
     else:
         st.info("The warehouse is currently empty. Use the Admin Portal on the left to add items.")
+
 
