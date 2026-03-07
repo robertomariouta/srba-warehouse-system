@@ -32,8 +32,31 @@ conn = get_connection()
 if conn:
     # Pull only the columns created in the new table
     df_raw = pd.read_sql('SELECT item_name, brand, current_stock, unit_type, last_updated FROM inventory ORDER BY last_updated DESC', conn)
+
+# --- 5. MAIN DISPLAY (ALWAYS VISIBLE) ---
+# This section is now outside any password checks
+if not df_raw.empty:
+    df = df_raw.rename(columns={
+        'item_name': 'Nama Barang', 'brand': 'Brand',
+        'current_stock': 'Sisa Barang', 'unit_type': 'Satuan Barang',
+        'last_updated': 'Update Data'
+    })
     
-# --- 5. ADMIN PORTAL ---
+    df['Status'] = df['Sisa Barang'].apply(lambda x: "📦 RE-ORDER" if x <= 10 else "✅ STOCK SAFE")
+    search = st.text_input("🔍 Search Name or Brand:")
+    df_display = df[['Nama Barang', 'Brand', 'Sisa Barang', 'Satuan Barang', 'Status', 'Update Data']]
+    
+    if search:
+        mask = df_display['Nama Barang'].str.contains(search, case=False) | df_display['Brand'].str.contains(search, case=False)
+        st.dataframe(df_display[mask], use_container_width=True, hide_index=True)
+    else:
+        st.dataframe(df_display, use_container_width=True, hide_index=True)
+else:
+    st.info("The warehouse is currently empty. Use the Admin Portal on the left to add items.")
+
+st.divider()
+
+# --- 6. ADMIN PORTAL (CONTROLS ACTIONS ONLY) ---
 st.sidebar.header("🔒 Admin Portal")
 password = st.sidebar.text_input("Enter Admin Password:", type="password")
 
@@ -107,31 +130,3 @@ if password:
         # --- EVERYTHING IN HERE IS FOR VISITORS ---
         st.sidebar.error("Your Password is Wrong")
         st.sidebar.info("Logged in as Visitor")
-
-    # --- 6. MAIN DISPLAY (SEARCH & TABLE) ---
-    if not df_raw.empty:
-        df = df_raw.rename(columns={
-            'item_name': 'Nama Barang', 'brand': 'Brand',
-            'current_stock': 'Sisa Barang', 'unit_type': 'Satuan Barang',
-            'last_updated': 'Update Data'
-        })
-        
-        df['Status'] = df['Sisa Barang'].apply(lambda x: "📦 RE-ORDER" if x <= 10 else "✅ STOCK SAFE")
-        search = st.text_input("🔍 Search Name or Brand:")
-        df_display = df[['Nama Barang', 'Brand', 'Sisa Barang', 'Satuan Barang', 'Status', 'Update Data']]
-        
-        if search:
-            mask = df_display['Nama Barang'].str.contains(search, case=False) | df_display['Brand'].str.contains(search, case=False)
-            st.dataframe(df_display[mask], use_container_width=True, hide_index=True)
-        else:
-            st.dataframe(df_display, use_container_width=True, hide_index=True)
-    else:
-        st.info("The warehouse is currently empty. Use the Admin Portal on the left to add items.")
-
-
-
-
-
-
-
-
