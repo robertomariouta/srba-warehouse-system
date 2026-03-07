@@ -71,7 +71,7 @@ if password:
                     st.rerun()
             else:
                 st.sidebar.warning("No items to update yet.")
-
+        
         else:
             st.sidebar.subheader("Add New Item")
             add_n = st.sidebar.text_input("Item Name")
@@ -80,19 +80,29 @@ if password:
             add_u = st.sidebar.selectbox("Unit", ["Box", "Pcs", "Tube", "Pack", "Botol", "Buah"])
             
             if st.sidebar.button("Save New Item"):
-                if add_n:
+                if add_n and add_b:
                     cur = conn.cursor()
-                    # Updated to Makassar Time (GMT+8)
-                    cur.execute("""
-                        INSERT INTO inventory (item_name, brand, current_stock, unit_type, last_updated) 
-                        VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Makassar')
-                    """, (add_n, add_b, add_s, add_u))
-                    conn.commit()
-                    st.sidebar.success("✨ Added!")
-                    st.rerun()
+                    
+                    # 1. Check if this specific item name and brand already exist
+                    cur.execute("SELECT item_name, brand FROM inventory WHERE item_name = %s AND brand = %s", (add_n, add_b))
+                    existing = cur.fetchone()
+                    
+                    if existing:
+                        # 2. Show the warning if it is already available
+                        st.sidebar.error(f"⚠️ Data '{add_n}' with Brand '{add_b}' is already available.")
+                        st.sidebar.warning("Please just update the stock in the 'Update Stock' menu instead.")
+                    else:
+                        # 3. If it is truly new, save it with Makassar Time
+                        cur.execute("""
+                            INSERT INTO inventory (item_name, brand, current_stock, unit_type, last_updated) 
+                            VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Makassar')
+                        """, (add_n, add_b, add_s, add_u))
+                        conn.commit()
+                        st.sidebar.success("✨ New item added successfully!")
+                        st.rerun()
                 else:
-                    st.sidebar.warning("Please enter a name.")
-
+                    st.sidebar.warning("Please fill in both Item Name and Brand.")
+        
     else:
         # --- EVERYTHING IN HERE IS FOR VISITORS ---
         st.sidebar.error("Your Password is Wrong")
@@ -117,6 +127,7 @@ if password:
             st.dataframe(df_display, use_container_width=True, hide_index=True)
     else:
         st.info("The warehouse is currently empty. Use the Admin Portal on the left to add items.")
+
 
 
 
