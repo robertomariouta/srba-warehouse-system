@@ -38,13 +38,42 @@ with col2:
 # --- 3. FETCH DATA ---
 conn = get_connection()
 if conn:
-    # Pulling from your VIEW for the display
-    df = pd.read_sql('SELECT * FROM daily_report', conn)
+    # 1. Fetch ALL data (Backend has everything)
+    df = pd.read_sql('SELECT * FROM inventory', conn)
     conn.close()
 
-    # Sort by the "Update Data" column (Newest first)
-    df['Update Data'] = pd.to_datetime(df['Update Data'])
-    df = df.sort_values(by='Update Data', ascending=False)
+    # 2. RENAME to match your perfect Local Host
+    df = df.rename(columns={
+        'item_name': 'Nama Barang',
+        'brand': 'Brand',
+        'current_stock': 'Sisa Barang',
+        'unit_type': 'Satuan Barang',
+        'last_updated': 'Update Data'
+    })
+
+    # 3. THE FORMULA (Calculates Status automatically)
+    # This uses the hidden 'min_required' column for the math!
+    df['Status'] = df.apply(
+        lambda x: "📦 RE-ORDER" if x['Sisa Barang'] <= x['min_required'] else "✅ STOCK SAFE", 
+        axis=1
+    )
+
+    # 4. THE FILTER (Frontend: Only show what you want)
+    # We leave 'min_required' and 'location_code' out of this list
+    display_columns = ['Nama Barang', 'Brand', 'Sisa Barang', 'Satuan Barang', 'Status', 'Update Data']
+    df_display = df[display_columns]
+
+    # --- 5. MAIN DASHBOARD ---
+    search = st.text_input("🔍 Search Name or Brand:")
+    
+    if search:
+        # Search happens on the cleaned 'df_display'
+        df_final = df_display[df_display['Nama Barang'].str.contains(search, case=False) | 
+                              df_display['Brand'].str.contains(search, case=False)]
+    else:
+        df_final = df_display
+
+    st.dataframe(df_final, use_container_width=True, hide_index=True)
 
     # --- 4. SIDEBAR ADMIN PANEL ---
     st.sidebar.header("🔒 Admin Portal")
@@ -120,17 +149,6 @@ if conn:
         st.sidebar.warning("❌ Your password is wrong, you're in visitor mode.")
     else:
         st.sidebar.info("Please enter password to edit.")
-
-    # --- 5. MAIN DASHBOARD ---
-    search = st.text_input("🔍 Search Name or Brand:", placeholder="Type and press ENTER...")
-    
-    if search:
-        df_display = df[df['Nama Barang'].str.contains(search, case=False) | 
-                        df['Brand'].str.contains(search, case=False)]
-    else:
-        df_display = df
-
-    st.dataframe(df_display, use_container_width=True, hide_index=True)
 
 else:
     st.warning("Could not connect to database.")
