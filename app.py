@@ -36,7 +36,7 @@ def get_status(stock):
     return "📦 RE-ORDER" if stock <= 0 else "✅ STOCK SAFE"
 
 df_display["Status"] = df_display["Sisa Barang"].apply(get_status)
-st.table(df_display[["Nama Barang", "Brand", "Sisa Barang", "Satuan Barang", "Status", "Update Data"]])
+st.table(df_display[["Nama Barang", "Brand", "Sisa Barang", "Satuan Barang", "Status", "Update Data"]].assign(index='').set_index('index'))
 
 st.sidebar.header("🔒 Admin Portal")
 password = st.sidebar.text_input("Enter Admin Password:", type="password")
@@ -89,3 +89,4 @@ if password:
     else:
         st.sidebar.error("Your Password is Wrong")
         st.sidebar.info("Logged in as Visitor")
+
