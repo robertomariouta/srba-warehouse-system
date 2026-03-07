@@ -65,9 +65,9 @@ if conn:
             else:
                 st.sidebar.warning("No items to update yet. Add a new item first!")
                 
-        else:
-            st.sidebar.error("Your Password is Wrong")
-            st.sidebar.info("Logged in as Visitor")
+            else:
+                st.sidebar.error("Your Password is Wrong")
+                st.sidebar.info("Logged in as Visitor")
         
         else:
             st.sidebar.subheader("Add New Item")
@@ -105,5 +105,6 @@ if conn:
             st.dataframe(df_display, use_container_width=True, hide_index=True)
     else:
         st.info("The warehouse is currently empty. Use the Admin Portal on the left to add items.")
+
 
 
