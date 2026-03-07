@@ -48,15 +48,15 @@ if conn:
             task = st.sidebar.radio("Choose Action:", ["📝 Update Stock", "➕ Add New Item"])
         
             if task == "📝 Update Stock":
-            if not df_raw.empty:
-                st.sidebar.subheader("Update Inventory")
-                brands = sorted(df_raw['brand'].unique())
-                sel_brand = st.sidebar.selectbox("Choose Brand", brands)
-                names = df_raw[df_raw['brand'] == sel_brand]['item_name'].tolist()
-                sel_name = st.sidebar.selectbox("Choose Item Name", names)
-                current_qty = df_raw[(df_raw['brand'] == sel_brand) & (df_raw['item_name'] == sel_name)]['current_stock'].values[0]
-                st.sidebar.info(f"Last Stock: **{current_qty}**")
-                new_qty = st.sidebar.number_input("Input New Stock", min_value=0, value=int(current_qty))
+                if not df_raw.empty:
+                    st.sidebar.subheader("Update Inventory")
+                    brands = sorted(df_raw['brand'].unique())
+                    sel_brand = st.sidebar.selectbox("Choose Brand", brands)
+                    names = df_raw[df_raw['brand'] == sel_brand]['item_name'].tolist()
+                    sel_name = st.sidebar.selectbox("Choose Item Name", names)
+                    current_qty = df_raw[(df_raw['brand'] == sel_brand) & (df_raw['item_name'] == sel_name)]['current_stock'].values[0]
+                    st.sidebar.info(f"Last Stock: **{current_qty}**")
+                    new_qty = st.sidebar.number_input("Input New Stock", min_value=0, value=int(current_qty))
                 
                 if st.sidebar.button("Update Now"):
                     cur = conn.cursor()
@@ -109,6 +109,7 @@ if conn:
             st.dataframe(df_display, use_container_width=True, hide_index=True)
     else:
         st.info("The warehouse is currently empty. Use the Admin Portal on the left to add items.")
+
 
 
 
