@@ -39,15 +39,15 @@ if conn:
 
     # This is the part we are adding/changing slightly
     if password:
-    if password == st.secrets["admin_password"]:
-        # --- EVERYTHING IN HERE IS FOR ADMIN ONLY ---
-        st.sidebar.success("Logged in as Admin")
-        st.sidebar.divider()
+        if password == st.secrets["admin_password"]:
+            # --- EVERYTHING IN HERE IS FOR ADMIN ONLY ---
+            st.sidebar.success("Logged in as Admin")
+            st.sidebar.divider()
         
-        # This menu ONLY appears if the password is correct
-        task = st.sidebar.radio("Choose Action:", ["📝 Update Stock", "➕ Add New Item"])
+            # This menu ONLY appears if the password is correct
+            task = st.sidebar.radio("Choose Action:", ["📝 Update Stock", "➕ Add New Item"])
         
-        if task == "📝 Update Stock":
+            if task == "📝 Update Stock":
             if not df_raw.empty:
                 st.sidebar.subheader("Update Inventory")
                 brands = sorted(df_raw['brand'].unique())
@@ -109,6 +109,7 @@ if conn:
             st.dataframe(df_display, use_container_width=True, hide_index=True)
     else:
         st.info("The warehouse is currently empty. Use the Admin Portal on the left to add items.")
+
 
 
 
